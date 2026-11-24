@@ -269,7 +269,7 @@ a.btn.primary { color: var(--on-accent); }
   var CSV_COLS = [["date", "Date"], ["summary", "Development"], ["project", "Project / lease"], ["type", "Type"], ["clearinghouse", "Clearinghouse"], ["mission", "Mission relevance"], ["status", "Status"], ["next", "Next milestone"], ["actor", "Actor"], ["developer", "Developer"], ["region", "Region"], ["scope", "Onshore / offshore"], ["tier", "Source tier"], ["source", "Source"], ["url", "Link"]];
 
   var REPO = "https://github.com/us-wind-tracker/us-wind-tracker.github.io";
-  var state = { items: [], scope: "all", q: "", types: [], statuses: [], month: null, where: "", loaded: false, failed: false };
+  var state = { items: [], scope: "all", q: "", types: [], statuses: [], months: [], where: "", loaded: false, failed: false };
   var $ = function (id) { return document.getElementById(id); };
 
   function h(tag, attrs) {
@@ -323,10 +323,12 @@ a.btn.primary { color: var(--on-accent); }
     box.appendChild(h("span", null, "latest ", h("b", { text: latest ? longDate(latest) : "none" })));
   }
 
+  function isSel(k) { return state.months.indexOf(k) !== -1; }
+
   function renderChart(scoped) {
     var bars = $("bars"), labels = $("bar-labels"), tip = $("tip");
     bars.textContent = ""; labels.textContent = ""; tip.hidden = true;
-    bars.classList.toggle("has-sel", state.month != null);
+    bars.classList.toggle("has-sel", state.months.length > 0);
     var keys = state.items.map(function (it) { return monthKey(it.date); }).filter(function (k) { return k != null; });
     if (!keys.length) return;
     var lo = Math.min.apply(null, keys), hi = Math.max.apply(null, keys);
@@ -339,11 +341,11 @@ a.btn.primary { color: var(--on-accent); }
     for (k = lo; k <= hi; k++) (function (k) {
       var n = counts[k] || 0, y = Math.floor(k / 12), m = k % 12;
       var label = MONTHS_LONG[m] + " " + y + ": " + n + (n === 1 ? " development" : " developments");
-      var slot = h("div", { class: "bar-slot" + (n ? " has" : "") + (state.month === k ? " sel" : ""), tabindex: "0", "aria-label": label + (n ? ". Press to show only this month" : "") });
+      var slot = h("div", { class: "bar-slot" + (n ? " has" : "") + (isSel(k) ? " sel" : ""), tabindex: "0", "aria-label": label + (n ? ". Press to select or deselect this month" : "") });
       if (n) {
         slot.setAttribute("role", "button");
-        slot.setAttribute("aria-pressed", String(state.month === k));
-        var pick = function () { state.month = state.month === k ? null : k; render(); };
+        slot.setAttribute("aria-pressed", String(isSel(k)));
+        var pick = function () { state.months = isSel(k) ? state.months.filter(function (x) { return x !== k; }) : state.months.concat([k]).sort(function (a, b) { return a - b; }); render(); };
         slot.addEventListener("click", pick);
         slot.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
       }
@@ -427,18 +429,21 @@ a.btn.primary { color: var(--on-accent); }
 
   function renderMonthNote() {
     var box = $("month-note"); box.textContent = "";
-    if (state.month == null) { box.appendChild(document.createTextNode("Click a month to show only its developments.")); return; }
-    box.appendChild(h("span", null, "Showing only ", h("b", { text: MONTHS_LONG[state.month % 12] + " " + Math.floor(state.month / 12) }), ". "));
+    if (!state.months.length) { box.appendChild(document.createTextNode("Click one or more months to show only their developments.")); return; }
+    var names = state.months.map(function (k) { return MONTHS_LONG[k % 12] + " " + Math.floor(k / 12); });
+    var list = names.length < 3 ? names.join(" and ") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+    box.appendChild(h("span", null, "Showing only ", h("b", { text: list }), ". Click a month again to deselect it. "));
     var all = h("button", { type: "button", class: "btn small", id: "month-clear", text: "Show all months" });
-    all.addEventListener("click", function () { state.month = null; render(); });
+    all.addEventListener("click", function () { state.months = []; render(); });
     box.appendChild(all);
   }
 
   function render() {
     $("f-scope").value = state.scope;
     var base = filtered();
-    if (state.month != null && !base.some(function (it) { return monthKey(it.date) === state.month; })) state.month = null;
-    var shown = state.month == null ? base : base.filter(function (it) { return monthKey(it.date) === state.month; });
+    var present = {}; base.forEach(function (it) { present[monthKey(it.date)] = true; });
+    state.months = state.months.filter(function (k) { return present[k]; });
+    var shown = !state.months.length ? base : base.filter(function (it) { return isSel(monthKey(it.date)); });
     renderStats(shown); renderChart(base); renderLedger(shown); renderWatch(shown); renderMonthNote();
     $("foot-count").textContent = state.loaded ? state.items.length + " developments logged" : "";
   }
