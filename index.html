@@ -320,7 +320,7 @@ a.btn.primary { color: var(--on-accent); }
     var latest = scoped.length ? scoped[0].date : null;
     function stat(n, label) { return h("span", null, h("b", { text: String(n) }), " " + label); }
     box.appendChild(stat(scoped.length, scoped.length === 1 ? "development" : "developments"));
-    box.appendChild(stat(open, "open"));
+    box.appendChild(stat(open, "unresolved"));
     box.appendChild(h("span", null, "latest ", h("b", { text: latest ? longDate(latest) : "none" })));
   }
 
@@ -418,7 +418,7 @@ a.btn.primary { color: var(--on-accent); }
   function renderWatch(scoped) {
     var box = $("watch-list"); box.textContent = "";
     var open = scoped.filter(function (it) { return isOpen(it) && str(it.next); }).slice(0, 8);
-    if (!open.length) { box.appendChild(h("li", { class: "proj", text: "No open items with a next milestone match these filters." })); return; }
+    if (!open.length) { box.appendChild(h("li", { class: "proj", text: "No unresolved items with a next milestone match these filters." })); return; }
     open.forEach(function (it) {
       box.appendChild(h("li", null,
         h("span", { class: "next", text: it.next }),
