@@ -179,6 +179,15 @@ dialog form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 .foot { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
 a.btn { text-decoration: none; display: inline-flex; align-items: center; color: var(--ink); }
 a.btn.primary { color: var(--on-accent); }
+.multi { position: relative; }
+.multi > summary { list-style: none; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 30px 8px 10px; min-height: 38px; white-space: nowrap; position: relative; }
+.multi > summary::-webkit-details-marker { display: none; }
+.multi > summary::after { content: ""; position: absolute; right: 11px; top: 50%; width: 6px; height: 6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-70%) rotate(45deg); }
+.multi.on > summary { border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.multi-panel { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; min-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 6px 18px rgba(10, 18, 24, 0.18); }
+.multi-panel label { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 4px; white-space: nowrap; cursor: pointer; }
+.multi-panel label:hover { background: var(--accent-soft); }
+.multi-clear { align-self: flex-start; margin-top: 4px; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 6px; font-size: 13px; }
 .entry-foot a.remove { color: var(--muted); margin-left: auto; font-size: 12px; }
 .entry-foot a.remove:hover { color: var(--flag); }
 </style>
@@ -208,8 +217,8 @@ a.btn.primary { color: var(--on-accent); }
   <div class="controls">
     <input type="search" id="q" placeholder="Search summaries, projects, developers" aria-label="Search">
     <select id="f-scope" aria-label="All items or Clearinghouse only"><option value="all">All items</option><option value="ch">Clearinghouse only</option></select>
-    <select id="f-type" aria-label="Type"><option value="">All types</option></select>
-    <select id="f-status" aria-label="Status"><option value="">Any status</option></select>
+    <details class="multi" id="f-type"><summary>All types</summary><div class="multi-panel" role="group" aria-label="Types"></div></details>
+    <details class="multi" id="f-status"><summary>Any status</summary><div class="multi-panel" role="group" aria-label="Status"></div></details>
     <select id="f-where" aria-label="Onshore or offshore"><option value="">Onshore and offshore</option><option value="Offshore">Offshore</option><option value="Onshore">Onshore</option></select>
     <span class="spacer"></span>
     <button type="button" class="btn" id="csv">Download CSV</button>
@@ -255,7 +264,7 @@ a.btn.primary { color: var(--on-accent); }
   var CSV_COLS = [["date", "Date"], ["summary", "Development"], ["project", "Project / lease"], ["type", "Type"], ["clearinghouse", "Clearinghouse"], ["mission", "Mission relevance"], ["status", "Status"], ["next", "Next milestone"], ["actor", "Actor"], ["developer", "Developer"], ["region", "Region"], ["scope", "Onshore / offshore"], ["tier", "Source tier"], ["source", "Source"], ["url", "Link"]];
 
   var REPO = "https://github.com/us-wind-tracker/us-wind-tracker.github.io";
-  var state = { items: [], scope: "all", q: "", type: "", status: "", where: "", loaded: false, failed: false };
+  var state = { items: [], scope: "all", q: "", types: [], statuses: [], where: "", loaded: false, failed: false };
   var $ = function (id) { return document.getElementById(id); };
 
   function h(tag, attrs) {
@@ -291,8 +300,8 @@ a.btn.primary { color: var(--on-accent); }
   function filtered() {
     var q = state.q.trim().toLowerCase();
     return inScope().filter(function (it) {
-      if (state.type && it.type !== state.type) return false;
-      if (state.status && it.status !== state.status) return false;
+      if (state.types.length && state.types.indexOf(it.type) === -1) return false;
+      if (state.statuses.length && state.statuses.indexOf(it.status) === -1) return false;
       if (state.where && it.scope !== state.where && it.scope !== "Both") return false;
       if (!q) return true;
       return [it.summary, it.project, it.developer, it.actor, it.region, it.mission, it.next, it.source].some(function (v) { return str(v).toLowerCase().indexOf(q) !== -1; });
@@ -426,7 +435,34 @@ a.btn.primary { color: var(--on-accent); }
     } catch (e) { toast("The download was blocked by this browser."); }
   }
 
-  fillSelect("f-type", TYPES); fillSelect("f-status", STATUSES);
+  function multi(id, values, key, allLabel, noun) {
+    var box = $(id), panel = box.querySelector(".multi-panel"), summary = box.querySelector("summary");
+    values.forEach(function (v, i) {
+      var cb = h("input", { type: "checkbox", id: id + "-" + i, value: v });
+      cb.addEventListener("change", function () {
+        state[key] = values.filter(function (x, j) { return $(id + "-" + j).checked; });
+        var n = state[key].length;
+        summary.textContent = n === 0 ? allLabel : n === 1 ? state[key][0] : n + " " + noun;
+        box.classList.toggle("on", n > 0);
+        render();
+      });
+      panel.appendChild(h("label", { "for": id + "-" + i }, cb, v));
+    });
+    var clear = h("button", { type: "button", class: "multi-clear", text: "Clear" });
+    clear.addEventListener("click", function () {
+      values.forEach(function (x, j) { $(id + "-" + j).checked = false; });
+      state[key] = []; summary.textContent = allLabel; box.classList.remove("on"); render();
+    });
+    panel.appendChild(clear);
+  }
+  multi("f-type", TYPES, "types", "All types", "types");
+  multi("f-status", STATUSES, "statuses", "Any status", "statuses");
+  document.addEventListener("click", function (e) {
+    document.querySelectorAll("details.multi[open]").forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute("open"); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") document.querySelectorAll("details.multi[open]").forEach(function (d) { d.removeAttribute("open"); });
+  });
   try { var s = localStorage.getItem("owt-scope"); if (s === "ch" || s === "all") state.scope = s; } catch (e) {}
   $("f-scope").addEventListener("change", function (e) {
     state.scope = e.target.value === "ch" ? "ch" : "all";
@@ -434,8 +470,6 @@ a.btn.primary { color: var(--on-accent); }
     render();
   });
   $("q").addEventListener("input", function (e) { state.q = e.target.value; render(); });
-  $("f-type").addEventListener("change", function (e) { state.type = e.target.value; render(); });
-  $("f-status").addEventListener("change", function (e) { state.status = e.target.value; render(); });
   $("f-where").addEventListener("change", function (e) { state.where = e.target.value; render(); });
   $("csv").addEventListener("click", downloadCsv);
   render();
