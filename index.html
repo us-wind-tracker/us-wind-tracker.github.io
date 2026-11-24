@@ -216,7 +216,7 @@ a.btn.primary { color: var(--on-accent); }
 
   <div class="controls">
     <input type="search" id="q" placeholder="Search summaries, projects, developers" aria-label="Search">
-    <select id="f-scope" aria-label="All items or Clearinghouse only"><option value="all">All items</option><option value="ch">Clearinghouse only</option></select>
+    <select id="f-scope" aria-label="All items or Clearinghouse only"><option value="all">Clearinghouse and other</option><option value="ch">Clearinghouse only</option></select>
     <details class="multi" id="f-type"><summary>All types</summary><div class="multi-panel" role="group" aria-label="Types"></div></details>
     <details class="multi" id="f-status"><summary>Any status</summary><div class="multi-panel" role="group" aria-label="Status"></div></details>
     <select id="f-where" aria-label="Onshore or offshore"><option value="">Onshore and offshore</option><option value="Offshore">Offshore</option><option value="Onshore">Onshore</option></select>
@@ -386,7 +386,7 @@ a.btn.primary { color: var(--on-accent); }
     var box = $("ledger"); box.textContent = "";
     if (state.failed) { box.appendChild(h("p", { class: "empty", text: "The tracker data could not be loaded. Reload the page to try again." })); return; }
     if (!state.loaded) { box.appendChild(h("p", { class: "empty", text: "Loading developments\u2026" })); return; }
-    if (!list.length) { box.appendChild(h("p", { class: "empty", text: "Nothing matches these filters. Clear the search or set the first filter to All items." })); return; }
+    if (!list.length) { box.appendChild(h("p", { class: "empty", text: "Nothing matches these filters. Clear the search or widen the filters." })); return; }
     var groups = [], cur = null;
     list.forEach(function (it) {
       var k = monthKey(it.date);
