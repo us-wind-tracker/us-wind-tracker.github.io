@@ -1,0 +1,34 @@
+name: Remove entry
+
+# Runs when someone opens an issue titled "Remove: <entry id>", which is what
+# the Remove link under each entry on the site creates. Only people with write
+# access to this repository (organization members) can remove entries.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+
+concurrency:
+  group: data-file
+  cancel-in-progress: false
+
+jobs:
+  remove:
+    if: startsWith(github.event.issue.title, 'Remove:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove the entry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+        run: python3 .github/scripts/remove_entry.py

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Offshore Wind Tracker</title>
-<meta name="description" content="Federal actions, litigation and lease buybacks affecting U.S. offshore wind, with the DoD Siting Clearinghouse thread separated out.">
+<title>U.S. Wind Tracker</title>
+<meta name="description" content="Federal actions, litigation and lease buybacks affecting U.S. wind energy, onshore and offshore, with the DoD Siting Clearinghouse thread separated out.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -179,14 +179,16 @@ dialog form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 .foot { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
 a.btn { text-decoration: none; display: inline-flex; align-items: center; color: var(--ink); }
 a.btn.primary { color: var(--on-accent); }
+.entry-foot a.remove { color: var(--muted); margin-left: auto; font-size: 12px; }
+.entry-foot a.remove:hover { color: var(--flag); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="masthead">
     <div>
-      <h1>Offshore Wind Tracker</h1>
-      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind development. Filter to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
+      <h1>U.S. Wind Tracker</h1>
+      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind energy, onshore and offshore. Filter to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
     </div>
   </header>
 
@@ -211,7 +213,7 @@ a.btn.primary { color: var(--on-accent); }
     <select id="f-where" aria-label="Onshore or offshore"><option value="">Onshore and offshore</option><option value="Offshore">Offshore</option><option value="Onshore">Onshore</option></select>
     <span class="spacer"></span>
     <button type="button" class="btn" id="csv">Download CSV</button>
-    <a class="btn primary" href="https://github.com/offshorewindtracker/offshorewindtracker.github.io/pulls">Review proposed items</a>
+    <a class="btn primary" href="https://github.com/us-wind-tracker/us-wind-tracker.github.io/issues/2">Publication log</a>
   </div>
 
   <div class="columns">
@@ -237,9 +239,9 @@ a.btn.primary { color: var(--on-accent); }
 
   <footer class="foot">
     <span id="foot-count"></span>
-    <a href="https://github.com/offshorewindtracker/offshorewindtracker.github.io/blob/main/data/items.json">Data file</a>
-    <a href="https://github.com/offshorewindtracker/offshorewindtracker.github.io#how-review-works">How review works</a>
-    <a href="https://github.com/offshorewindtracker/offshorewindtracker.github.io/issues/new">Suggest an item or correction</a>
+    <a href="https://github.com/us-wind-tracker/us-wind-tracker.github.io/blob/main/data/items.json">Data file</a>
+    <a href="https://github.com/us-wind-tracker/us-wind-tracker.github.io#removing-an-entry">How removal works</a>
+    <a href="https://github.com/us-wind-tracker/us-wind-tracker.github.io/issues/new">Suggest an item or correction</a>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
@@ -253,6 +255,7 @@ a.btn.primary { color: var(--on-accent); }
   var MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   var CSV_COLS = [["date", "Date"], ["summary", "Development"], ["project", "Project / lease"], ["type", "Type"], ["clearinghouse", "Clearinghouse"], ["mission", "Mission relevance"], ["status", "Status"], ["next", "Next milestone"], ["actor", "Actor"], ["developer", "Developer"], ["region", "Region"], ["scope", "Onshore / offshore"], ["tier", "Source tier"], ["source", "Source"], ["url", "Link"]];
 
+  var REPO = "https://github.com/us-wind-tracker/us-wind-tracker.github.io";
   var state = { items: [], scope: "all", q: "", type: "", status: "", where: "", loaded: false, failed: false };
   var $ = function (id) { return document.getElementById(id); };
 
@@ -362,6 +365,11 @@ a.btn.primary { color: var(--on-accent); }
     if (url) foot.appendChild(h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: (str(it.source) || "Source") + " \u2197" }));
     else if (str(it.source)) foot.appendChild(h("span", { text: it.source }));
     if (str(it.tier)) foot.appendChild(h("span", { class: "tier", text: it.tier }));
+    if (/^\d{8}-[a-z0-9-]+$/.test(str(it.id))) {
+      var body = "Submitting this removes the entry below from the tracker. Only organization members can remove entries.\n\n" +
+        "Entry: " + str(it.date) + " - " + str(it.summary) + "\n\nReason: ";
+      foot.appendChild(h("a", { class: "remove", href: REPO + "/issues/new?title=" + encodeURIComponent("Remove: " + it.id) + "&body=" + encodeURIComponent(body), target: "_blank", rel: "noopener noreferrer", text: "Remove" }));
+    }
     main.appendChild(foot);
     return h("article", { class: "entry" + (it.clearinghouse === true ? " ch" : "") }, h("div", { class: "date", text: shortDate(it.date) }), main);
   }
@@ -412,7 +420,7 @@ a.btn.primary { color: var(--on-accent); }
     var csv = rows.map(function (r) { return r.map(function (v) { return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); }).join("\r\n");
     try {
       var url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
-      var a = h("a", { href: url, download: "offshore-wind-tracker.csv" });
+      var a = h("a", { href: url, download: "us-wind-tracker.csv" });
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       toast("Downloaded " + (rows.length - 1) + " rows.");
