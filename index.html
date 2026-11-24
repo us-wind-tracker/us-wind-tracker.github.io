@@ -73,6 +73,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .masthead { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; }
 .masthead .lede { color: var(--muted); max-width: 60ch; margin-top: 6px; }
+.lede-link { white-space: nowrap; }
+html { scroll-behavior: smooth; }
+#how-review-works { scroll-margin-top: 16px; }
 
 .scope { display: inline-flex; border: 1px solid var(--accent); border-radius: 999px; padding: 3px; background: var(--surface); }
 .scope button {
@@ -201,7 +204,7 @@ a.btn.primary { color: var(--on-accent); }
   <header class="masthead">
     <div>
       <h1>U.S. Wind Tracker</h1>
-      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind energy, onshore and offshore. Filter to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
+      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind energy, onshore and offshore. Filter to Clearinghouse to see only items where DoD review or a national-security rationale is at issue. <a class="lede-link" href="#how-review-works">How Clearinghouse review works&nbsp;&darr;</a></p>
     </div>
   </header>
 
@@ -237,7 +240,7 @@ a.btn.primary { color: var(--on-accent); }
     </aside>
   </div>
 
-  <section class="panel ref" aria-labelledby="ref-title">
+  <section class="panel ref" id="how-review-works" aria-labelledby="ref-title">
     <h2 id="ref-title">How Clearinghouse review works</h2>
     <div class="ref-grid">
       <div><h3>What it covers</h3><p>The Military Aviation and Installation Assurance Siting Clearinghouse coordinates DoD review of energy project applications filed with the FAA under 49 U.S.C. 44718. <b>10 U.S.C. 183a(b)</b></p></div>
